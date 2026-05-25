@@ -1,0 +1,113 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAdmin() {
+      return request.auth != null &&
+             request.auth.token.role == "admin";
+    }
+
+    function isEmployee() {
+      return request.auth != null &&
+             request.auth.token.role != null &&
+             request.auth.token.role != "client" &&
+             request.auth.token.role != "admin";
+    }
+
+    function isClient() {
+      return request.auth != null &&
+             request.auth.token.role == "client";
+    }
+
+    // Public Onboarding Folder
+    match /onboarding/{allPaths=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Public Offers Folder
+    match /offers/{allPaths=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Admin Folder
+    match /admin/{allPaths=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // Employee specific folder
+    match /employee/{uid}/{allPaths=**} {
+      allow read, write: if isEmployee() && request.auth.uid == uid;
+    }
+
+    // Client specific folder
+    match /client/{uid}/{allPaths=**} {
+      allow read, write: if isClient() && request.auth.uid == uid;
+    }
+    
+    // Project files (Shared)
+    match /projects/{projectId}/{allPaths=**} {
+        allow read: if isAdmin() || isEmployee() || isClient();
+        allow write: if isAdmin() || isEmployee() || isClient();
+    }
+
+    // Email Attachments (Temporary storage for emails)
+    match /email-attachments/{allPaths=**} {
+        allow read, write: if isAdmin() || isEmployee() || isClient();
+    }
+
+    // Blog files
+    match /blogs/{allPaths=**} {
+        allow read: if true;
+        allow write: if request.auth != null; 
+    }
+
+    // Avatars
+    match /avatars/{imageId} {
+        allow read: if true;
+        allow write: if request.resource.size < 5 * 1024 * 1024 // 5MB limit
+                    && request.resource.contentType.matches('image/.*');
+    }
+
+    // Project Logos
+    match /project-logos/{allPaths=**} {
+        allow read: if true;
+        allow write: if isAdmin() || isEmployee();
+    }
+
+    // Resumes
+    match /resumes/{fileId} {
+        allow read: if true;
+        allow write: if request.resource.size < 10 * 1024 * 1024 // 10MB limit
+                    && (request.resource.contentType.matches('application/pdf') 
+                        || request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+                        || request.resource.contentType.matches('application/msword'));
+    }
+
+    // App Link files
+    match /app-links/{allPaths=**} {
+        allow read: if true;
+        allow write: if request.auth != null; 
+    }
+
+    // Signatures
+    match /signatures/{userId}/{allPaths=**} {
+        allow read: if true;
+        allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Candidate Assets
+    match /offer_assets/{allPaths=**} {
+        allow read: if true;
+        allow write: if request.auth != null;
+    }
+
+    // Assets Folder
+    match /assets/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.role != 'client';
+    }
+  }
+}

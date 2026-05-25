@@ -1,0 +1,202 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAdmin() {
+      return request.auth != null && request.auth.token.role == 'admin';
+    }
+    
+    function is2FAVerified() {
+       return request.auth.token.is2FAVerified == true;
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- EMPLOYEE ROLE RULES ---
+    
+    // Employees: Full read/write access to Projects (Task Management)
+    // Clients: Read ONLY their own projects based on email
+    match /projects/{project} {
+      allow read: if request.auth != null && (
+                     request.auth.token.role != 'client' || 
+                     resource.data.clientEmail == request.auth.token.email
+                   );
+      allow create, delete: if request.auth != null && (
+                               request.auth.token.role != 'client' || 
+                               isAdmin()
+                             );
+      allow update: if request.auth != null && (
+                      request.auth.token.role != 'client' || 
+                      resource.data.clientEmail == request.auth.token.email || 
+                      isAdmin()
+                    );
+                     
+      // Allow access to subcollections (like sentEmails, messages, trackerComments)
+      match /{document=**} {
+        allow read, write: if request.auth != null && (
+          request.auth.token.role != 'client' || 
+          request.auth.token.role == 'admin' ||
+          get(/databases/$(database)/documents/projects/$(project)).data.clientEmail == request.auth.token.email
+        );
+      }
+    }
+
+    // Employees: Read all employees (Company Directory), Write OWN profile (Status/Leave)
+    match /employees/{employee} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (
+                     isAdmin() || 
+                     request.auth.token.role != 'client' || 
+                     resource.data.authUid == request.auth.uid
+                   );
+    }
+
+    // Clients Collection: Employees can manage clients (read/write to update project lists)
+    match /clients/{client} {
+        allow read: if request.auth != null && (
+                      isAdmin() || 
+                      request.auth.token.role != 'client' || 
+                      request.auth.uid == resource.data.authUid
+                    );
+        allow write: if request.auth != null && (
+                       isAdmin() || 
+                       request.auth.token.role != 'client'
+                     );
+    }
+
+    match /users/{userId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth.uid == userId || isAdmin();
+    }
+
+    match /notifications/{document=**} {
+        allow read: if false; // Disabled to reduce Firebase costs
+        allow write: if false; // Disabled to reduce Firebase costs
+    }
+
+    // Admins have full access but MUST be 2FA verified
+    match /{document=**} {
+      allow read, write: if isAdmin() && is2FAVerified();
+    }
+
+    // PUBLIC ACCESS: Backlinks
+    // Allow ANYONE to read/write backlinks (as requested "open for all")
+    match /backlinks/{document=**} {
+      allow read, write: if true;
+    }
+
+    // Blogs
+    match /blogs/{document=**} {
+        allow read: if true;
+        allow write: if request.auth != null && request.auth.token.role != 'client';
+    }
+
+    // IT Assets
+    match /assets/{document=**} {
+      allow read, write: if request.auth != null && request.auth.token.role != 'client';
+    }
+
+    // IT Asset Issues
+    match /assetIssues/{issue} {
+        allow create: if request.auth != null;
+        allow read: if request.auth != null && (
+                      resource.data.employeeId == request.auth.uid || 
+                      isAdmin() || 
+                      request.auth.token.role != 'client'
+                    );
+        allow update: if request.auth != null && (
+                        isAdmin() || 
+                        request.auth.token.role != 'client'
+                      );
+    }
+
+
+
+    // Settings (Public Read for dropdowns in check-in form)
+    match /settings/{document=**} {
+        allow read: if true;
+        allow write: if request.auth != null && (
+                       isAdmin() || 
+                       request.auth.token.role != 'client'
+                     );
+    }
+
+    // Leads
+    match /leads/{document=**} {
+        allow read, write: if request.auth != null && (
+                        isAdmin() || 
+                        request.auth.token.role != 'client'
+                      );
+    }
+
+    // Email Signatures
+    match /emailSignatures/{userId} {
+        allow read: if true;
+        allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+    }
+
+    // Email Templates
+    match /emailTemplates/{templateId} {
+        allow read: if request.auth != null && (
+                      resource.data.userId == request.auth.uid || 
+                      isAdmin() || 
+                      request.auth.token.role != 'client'
+                    );
+        allow create: if request.auth != null && (
+                        request.resource.data.userId == request.auth.uid || 
+                        isAdmin()
+                      );
+        allow update, delete: if request.auth != null && (
+                                resource.data.userId == request.auth.uid || 
+                                isAdmin()
+                              );
+    }
+
+    // Lead Automation Logs
+    match /lead_automation_logs/{logId} {
+        allow read, write: if request.auth != null && (
+                        isAdmin() || 
+                        request.auth.token.role != 'client'
+                      );
+    }
+
+    // Invoices
+    match /invoices/{invoiceId} {
+        allow read: if request.auth != null && (
+                      request.auth.token.role != 'client' || 
+                      isAdmin()
+                    );
+        allow write: if request.auth != null && (
+                       isAdmin() || 
+                       request.auth.token.role != 'client'
+                     );
+    }
+
+    // Apps
+    match /apps/{appId} {
+        allow read: if true;
+        allow write: if request.auth != null && (
+                       isAdmin() || 
+                       request.auth.token.role != 'client'
+                     );
+    }
+
+    // Sessions Tracking
+    match /sessions/{sessionId} {
+        allow read: if request.auth != null && (resource == null || resource.data.uid == request.auth.uid || isAdmin());
+        allow delete: if request.auth != null && (resource != null && resource.data.uid == request.auth.uid || isAdmin());
+        allow create, update: if request.auth != null && (request.resource.data.uid == request.auth.uid || isAdmin());
+    }
+
+    // App Links (Public Read, Authenticated Write)
+    match /appLinks/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null; 
+    }
+  }
+}

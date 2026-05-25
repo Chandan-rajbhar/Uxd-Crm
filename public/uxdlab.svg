@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 150" width="400" height="150">
+    <text x="10" y="110" font-family="sans-serif" font-weight="900" font-size="100" fill="#000000" letter-spacing="-5">u</text>
+    <text x="75" y="110" font-family="sans-serif" font-weight="900" font-size="100" fill="#000000" letter-spacing="-5">x</text>
+    <circle cx="106" cy="30" r="12" fill="#E83C91" />
+    <text x="140" y="110" font-family="sans-serif" font-weight="900" font-size="100" fill="#000000" letter-spacing="-5">dlab</text>
+</svg>
