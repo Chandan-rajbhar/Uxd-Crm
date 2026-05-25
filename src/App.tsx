@@ -9,6 +9,7 @@ import EmployeesPage from "@/pages/Employees"
 import TasksPage from "@/pages/Tasks"
 import DailyUpdatesPage from "@/pages/DailyUpdates"
 import ProjectDetailsPage from "@/pages/ProjectDetails"
+import TestingPage from "@/pages/Testing"
 import AppsPage from "@/pages/Apps"
 import BacklinksPage from "@/pages/Backlinks"
 import BlogsPage from "@/pages/Blogs"
@@ -65,6 +66,7 @@ function App() {
 
 
             {/* Shared Protected Routes */}
+            <Route path="tasks/:id/testing" element={<TestingPage />} />
             <Route path="tasks/:id" element={<ProjectDetailsPage />} />
             <Route path="daily-updates" element={<DailyUpdatesPage />} />
             <Route path="calendar" element={<CalendarPage />} />
