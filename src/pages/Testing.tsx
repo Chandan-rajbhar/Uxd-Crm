@@ -74,7 +74,7 @@ export default function TestingPage() {
       id: `TC00${nextIndex}`,
       title: "UI validation",
       preconditions: "logged in",
-      steps: "review table",
+      steps: "Review table",
       expectedResult: "Table shows",
       actualResult: "Pending verification",
       status: "Pending",
@@ -291,15 +291,19 @@ export default function TestingPage() {
                     <select
                       value={testCase.status}
                       onChange={(event) =>
-                        updateTestCase(testCase.id, "status", event.target.value)
+                        updateTestCase(
+                          testCase.id,
+                          "status",
+                          event.target.value,
+                        )
                       }
                       className="h-9 w-22 text-sm bg-white"
                     >
-                      <option value="Pending">Pending</option>
-                      <option value="Active">Active</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="Verified">Verified</option>
-                      <option value="Completed">Completed</option>
+                      <option value="Pending">Fixed</option>
+                      <option value="Active">Not Fixed</option>
+                      <option value="Verified">Features</option>
+                      <option value="Completed">Removed</option>
+                      <option value="In Progress">Pending</option>
                     </select>
                   </TableCell>
                   <TableCell>
@@ -340,10 +344,17 @@ export default function TestingPage() {
                           Open
                         </a>
                       ) : (
-                        <span className="text-sm cursor-pointer">{testCase.link}</span>
+                        <span className="text-sm cursor-pointer">
+                          {testCase.link}
+                        </span>
                       )
                     ) : (
-                      <Button size="sm" variant="outline" onClick={() => addLink(testCase.id)} className="h-8">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => addLink(testCase.id)}
+                        className="h-8"
+                      >
                         Add Link
                       </Button>
                     )}
@@ -391,18 +402,22 @@ export default function TestingPage() {
                     <select
                       value={testCase.qaStatus}
                       onChange={(event) => {
-                        updateTestCase(testCase.id, "qaStatus", event.target.value);
-                        
+                        updateTestCase(
+                          testCase.id,
+                          "qaStatus",
+                          event.target.value,
+                        );
                       }}
                       className="h-9 w-25 rounded text-sm bg-white "
                     >
-                      <option value="Pending">Pending</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="Passed">Passed</option>
-                      <option value="Failed">Failed</option>
+                      <option value="Pending">Retesting</option>
+                      <option value="In Progress">Not Fixed</option>
+                      <option value="Passed">Re-open</option>
+                      <option value="Failed">Closed</option>
                       <option value="Blocked">Blocked</option>
-                      <option value="QA Completed">QA Completed</option>
-                      <option value="Approved">Approved</option>
+                      <option value="QA Completed">Removed</option>
+                      <option value="Approved">Work in Progress</option>
+                      <option value="Approved">Pending</option>
                     </select>
                   </TableCell>
                   <TableCell>
@@ -412,7 +427,7 @@ export default function TestingPage() {
                       className="h-9 px-2 ml-4"
                       onClick={() => handleDeleteClick(testCase.id)}
                     >
-                      <Trash2 className="h-4 w-4"/>
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -426,9 +441,12 @@ export default function TestingPage() {
       {isDeleteOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
-            <h2 className="text-lg font-bold text-slate-900 mb-3">Are you absolutely sure?</h2>
+            <h2 className="text-lg font-bold text-slate-900 mb-3">
+              Are you absolutely sure?
+            </h2>
             <p className="text-sm text-slate-600 mb-6">
-              This action cannot be undone. This will permanently delete the test case and remove it from the timeline.
+              This action cannot be undone. This will permanently delete the
+              test case and remove it from the timeline.
             </p>
             <div className="flex gap-3 justify-end">
               <Button
@@ -443,7 +461,9 @@ export default function TestingPage() {
               </Button>
               <Button
                 variant="destructive"
-                onClick={() => testCaseToDelete && removeTestCase(testCaseToDelete)}
+                onClick={() =>
+                  testCaseToDelete && removeTestCase(testCaseToDelete)
+                }
                 className="px-4 py-2"
               >
                 Delete Test Case
