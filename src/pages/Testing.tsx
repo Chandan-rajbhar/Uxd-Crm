@@ -37,6 +37,8 @@ export default function TestingPage() {
   const { projects } = useProjects();
   const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [testCaseToDelete, setTestCaseToDelete] = useState<string | null>(null);
 
   const storageKey = `testing-test-cases-${id || "global"}`;
 
@@ -85,7 +87,7 @@ export default function TestingPage() {
       qaStatus: "Pending",
     };
 
-    setTestCases((current) => [...current, newCase]);
+    setTestCases((current) => [newCase, ...current]);
   };
 
   const updateTestCase = (id: string, field: keyof TestCase, value: string) => {
@@ -98,6 +100,13 @@ export default function TestingPage() {
 
   const removeTestCase = (id: string) => {
     setTestCases((current) => current.filter((testCase) => testCase.id !== id));
+    setIsDeleteOpen(false);
+    setTestCaseToDelete(null);
+  };
+
+  const handleDeleteClick = (id: string) => {
+    setTestCaseToDelete(id);
+    setIsDeleteOpen(true);
   };
 
   const addLink = (id: string) => {
@@ -279,7 +288,19 @@ export default function TestingPage() {
                     />
                   </TableCell>
                   <TableCell className="py-2 px-3 text-sm text-slate-700">
-                    {testCase.status}
+                    <select
+                      value={testCase.status}
+                      onChange={(event) =>
+                        updateTestCase(testCase.id, "status", event.target.value)
+                      }
+                      className="h-9 w-22 text-sm bg-white"
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Active">Active</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Verified">Verified</option>
+                      <option value="Completed">Completed</option>
+                    </select>
                   </TableCell>
                   <TableCell>
                     <Input
@@ -319,7 +340,7 @@ export default function TestingPage() {
                           Open
                         </a>
                       ) : (
-                        <span className="text-sm">{testCase.link}</span>
+                        <span className="text-sm cursor-pointer">{testCase.link}</span>
                       )
                     ) : (
                       <Button size="sm" variant="outline" onClick={() => addLink(testCase.id)} className="h-8">
@@ -367,14 +388,29 @@ export default function TestingPage() {
                     />
                   </TableCell>
                   <TableCell className="py-2 px-3 text-sm text-slate-700">
-                    {testCase.qaStatus}
+                    <select
+                      value={testCase.qaStatus}
+                      onChange={(event) => {
+                        updateTestCase(testCase.id, "qaStatus", event.target.value);
+                        
+                      }}
+                      className="h-9 w-25 rounded text-sm bg-white "
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Passed">Passed</option>
+                      <option value="Failed">Failed</option>
+                      <option value="Blocked">Blocked</option>
+                      <option value="QA Completed">QA Completed</option>
+                      <option value="Approved">Approved</option>
+                    </select>
                   </TableCell>
                   <TableCell>
                     <Button
                       variant="destructive"
                       size="sm"
                       className="h-9 px-2 ml-4"
-                      onClick={() => removeTestCase(testCase.id)}
+                      onClick={() => handleDeleteClick(testCase.id)}
                     >
                       <Trash2 className="h-4 w-4"/>
                     </Button>
@@ -385,6 +421,37 @@ export default function TestingPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
+            <h2 className="text-lg font-bold text-slate-900 mb-3">Are you absolutely sure?</h2>
+            <p className="text-sm text-slate-600 mb-6">
+              This action cannot be undone. This will permanently delete the test case and remove it from the timeline.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsDeleteOpen(false);
+                  setTestCaseToDelete(null);
+                }}
+                className="px-4 py-2"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => testCaseToDelete && removeTestCase(testCaseToDelete)}
+                className="px-4 py-2"
+              >
+                Delete Test Case
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
