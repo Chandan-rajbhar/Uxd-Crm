@@ -2,15 +2,6 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Plus, Download, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TableBody,
-  TableCell,
-} from "@/components/ui/table";
 import { useProjects } from "src/hooks/useProjects";
 import * as XLSX from "xlsx";
 
@@ -66,6 +57,27 @@ export default function TestingPage() {
 
   const [colFieldMapping, setColFieldMapping] =
     useState<(keyof TestCase | "")[]>(defaultMap);
+
+  const columnLabels = useMemo(
+    () =>
+      [
+        "Test Case ID",
+        "Test Case Title",
+        "Preconditions",
+        "Steps",
+        "Expected Result",
+        "Actual Result",
+        "Status",
+        "Tester Name",
+        "Execution Date",
+        "Link",
+        "Developer Status",
+        "Developer Name",
+        "Fixed Date",
+        "QA Status",
+      ].concat(Array(26 - 14).fill("")),
+    [],
+  );
 
   const [sheetData, setSheetData] = useState<string[][]>(() =>
     Array.from({ length: 1000 }, () => Array(26).fill("")),
@@ -310,32 +322,9 @@ export default function TestingPage() {
           {/* Excel sheet always visible and synced to test cases */}
         </div>
       </div>
-      <div className="rounded-md border border-slate-200 bg-white shadow-sm">
+      <div className="rounded-md border border-slate-200 bg-white shadow-sm overflow-hidden">
         {/*  */}
 
-        <div className="rounded-md border border-slate-200 bg-white shadow-sm">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Test Case ID</TableHead>
-                <TableHead>Test Case Title</TableHead>
-                <TableHead>Preconditions</TableHead>
-                <TableHead>Steps</TableHead>
-                <TableHead>Expected Result</TableHead>
-                <TableHead>Actual Result</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Tester Name</TableHead>
-                <TableHead>Execution Date</TableHead>
-                <TableHead>Link</TableHead>
-                <TableHead>Developer Status</TableHead>
-                <TableHead>Developer Name</TableHead>
-                <TableHead>Fixed Date</TableHead>
-                <TableHead>QA Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-          </Table>
-        </div>
         {/* Delete Confirmation Modal */}
         {isDeleteOpen && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -375,24 +364,28 @@ export default function TestingPage() {
           <table className="min-w-full border-collapse text-sm">
             <thead className="bg-slate-100 text-slate-600">
               <tr>
-                <th className="sticky left-0 z-20 bg-slate-100 border border-slate-200 px-2 py-1 text-left text-xs uppercase tracking-[0.24em]">
+                <th className="sticky left-0 top-0 z-30 bg-slate-100 border border-slate-200 px-2 py-2 text-left text-xs uppercase tracking-[0.24em]">
                   #
                 </th>
-                {columnHeaders.map((column, i) => (
+                {columnLabels.map((label, i) => (
                   <th
-                    key={column}
+                    key={i}
                     style={{ width: colWidths[i] }}
-                    className="border border-slate-200 px-2 py-1 text-left text-xs uppercase tracking-[0.24em] align-top"
+                    className="border border-slate-200 bg-slate-100 px-2 py-2 text-left align-top"
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span>{column}</span>
-                      <div
-                        onMouseDown={(e) => startResize(i, e)}
-                        className="h-5 w-2 cursor-col-resize"
-                        title="Drag to resize"
-                      />
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] uppercase tracking-[0.24em] text-slate-500">
+                        {columnHeaders[i]}
+                      </span>
+                      <span className="text-[11px] font-semibold text-slate-700">
+                        {label || "\u00A0"}
+                      </span>
                     </div>
-                    {/* mapping dropdown removed per request */}
+                    <div
+                      onMouseDown={(e) => startResize(i, e)}
+                      className="h-5 w-2 cursor-col-resize mt-1"
+                      title="Drag to resize"
+                    />
                   </th>
                 ))}
               </tr>
@@ -438,7 +431,7 @@ export default function TestingPage() {
                                 setEditValue("");
                               }
                             }}
-                            className="w-full h-8 p-1 border rounded text-sm"
+                            className="w-full h-8 border rounded text-sm"
                           />
                         ) : (
                           <div className="text-xs min-h-[20px]">{cell}</div>
