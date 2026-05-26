@@ -1,10 +1,18 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Plus, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-import { Table, TableHead, TableHeader, TableRow, TableBody, TableCell } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
 import { useProjects } from "src/hooks/useProjects";
+import * as XLSX from "xlsx";
 
 type TestCase = {
   id: string;
@@ -28,6 +36,30 @@ export default function TestingPage() {
   const { id } = useParams();
   const { projects } = useProjects();
   const [testCases, setTestCases] = useState<TestCase[]>([]);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  const storageKey = `testing-test-cases-${id || "global"}`;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const saved = window.localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as TestCase[];
+        setTestCases(parsed);
+      } catch (error) {
+        console.error("Failed to parse saved test cases", error);
+      }
+    }
+
+    setIsHydrated(true);
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (!isHydrated || typeof window === "undefined") return;
+    window.localStorage.setItem(storageKey, JSON.stringify(testCases));
+  }, [storageKey, testCases, isHydrated]);
 
   const project = useMemo(
     () => projects.find((project) => project.id === id),
@@ -39,9 +71,9 @@ export default function TestingPage() {
     const newCase: TestCase = {
       id: `TC00${nextIndex}`,
       title: "UI validation",
-      preconditions: "User is logged in",
-      steps: "Open testing page and review table",
-      expectedResult: "Table shows all fields correctly",
+      preconditions: "logged in",
+      steps: "review table",
+      expectedResult: "Table shows",
       actualResult: "Pending verification",
       status: "Pending",
       testerName: "QA Team",
@@ -54,6 +86,48 @@ export default function TestingPage() {
     };
 
     setTestCases((current) => [...current, newCase]);
+  };
+
+  const updateTestCase = (id: string, field: keyof TestCase, value: string) => {
+    setTestCases((current) =>
+      current.map((testCase) =>
+        testCase.id === id ? { ...testCase, [field]: value } : testCase,
+      ),
+    );
+  };
+
+  const removeTestCase = (id: string) => {
+    setTestCases((current) => current.filter((testCase) => testCase.id !== id));
+  };
+
+  const exportTestCases = () => {
+    if (testCases.length === 0) return;
+
+    const data = testCases.map((testCase) => ({
+      "Test Case ID": testCase.id,
+      "Test Case Title": testCase.title,
+      Preconditions: testCase.preconditions,
+      Steps: testCase.steps,
+      "Expected Result": testCase.expectedResult,
+      "Actual Result": testCase.actualResult,
+      Status: testCase.status,
+      "Tester Name": testCase.testerName,
+      "Execution Date": testCase.executionDate,
+      Link: testCase.link,
+      "Developer Status": testCase.developerStatus,
+      "Developer Name": testCase.developerName,
+      "Fixed Date": testCase.fixedDate,
+      "QA Status": testCase.qaStatus,
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Test Cases");
+
+    const fileName = `${project?.name?.replace(/\s+/g, "_") || "test_cases"}_${new Date()
+      .toISOString()
+      .slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, fileName);
   };
 
   return (
@@ -88,6 +162,14 @@ export default function TestingPage() {
           >
             <Plus className="h-4 w-4" /> Add Test Case
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-10"
+            onClick={exportTestCases}
+          >
+            <Download className="h-4 w-4" /> Export Excel
+          </Button>
         </div>
       </div>
       <div className="overflow-auto rounded-md border border-slate-200 bg-white shadow-sm">
@@ -108,32 +190,188 @@ export default function TestingPage() {
               <TableHead>Developer Name</TableHead>
               <TableHead>Fixed Date</TableHead>
               <TableHead>QA Status</TableHead>
+              {/* <TableHead>Actions</TableHead> */}
             </TableRow>
           </TableHeader>
           <TableBody>
             {testCases.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={14} className="p-6 text-center text-sm text-slate-500">
+                <TableCell
+                  colSpan={15}
+                  className="p-6 text-center text-sm text-slate-500"
+                >
                   No test cases yet. Click Add Test Case to insert a dummy row.
                 </TableCell>
               </TableRow>
             ) : (
               testCases.map((testCase) => (
                 <TableRow key={testCase.id}>
-                  <TableCell>{testCase.id}</TableCell>
-                  <TableCell>{testCase.title}</TableCell>
-                  <TableCell>{testCase.preconditions}</TableCell>
-                  <TableCell>{testCase.steps}</TableCell>
-                  <TableCell>{testCase.expectedResult}</TableCell>
-                  <TableCell>{testCase.actualResult}</TableCell>
-                  <TableCell>{testCase.status}</TableCell>
-                  <TableCell>{testCase.testerName}</TableCell>
-                  <TableCell>{testCase.executionDate}</TableCell>
-                  <TableCell>{testCase.link}</TableCell>
-                  <TableCell>{testCase.developerStatus}</TableCell>
-                  <TableCell>{testCase.developerName}</TableCell>
-                  <TableCell>{testCase.fixedDate}</TableCell>
-                  <TableCell>{testCase.qaStatus}</TableCell>
+                  <TableCell>
+                    <Input
+                      value={testCase.id}
+                      onChange={(event) =>
+                        updateTestCase(testCase.id, "id", event.target.value)
+                      }
+                      className="h-9 w-20"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      value={testCase.title}
+                      onChange={(event) =>
+                        updateTestCase(testCase.id, "title", event.target.value)
+                      }
+                      className="h-9 w-full px-3"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      value={testCase.preconditions}
+                      onChange={(event) =>
+                        updateTestCase(
+                          testCase.id,
+                          "preconditions",
+                          event.target.value,
+                        )
+                      }
+                      className="h-9 w-full"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      value={testCase.steps}
+                      onChange={(event) =>
+                        updateTestCase(testCase.id, "steps", event.target.value)
+                      }
+                      className="h-9 w-full"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      value={testCase.expectedResult}
+                      onChange={(event) =>
+                        updateTestCase(
+                          testCase.id,
+                          "expectedResult",
+                          event.target.value,
+                        )
+                      }
+                      className="h-9 w-full"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      value={testCase.actualResult}
+                      onChange={(event) =>
+                        updateTestCase(
+                          testCase.id,
+                          "actualResult",
+                          event.target.value,
+                        )
+                      }
+                      className="h-9 w-full"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      value={testCase.status}
+                      onChange={(event) =>
+                        updateTestCase(
+                          testCase.id,
+                          "status",
+                          event.target.value,
+                        )
+                      }
+                      className="h-9 w-full"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      value={testCase.testerName}
+                      onChange={(event) =>
+                        updateTestCase(
+                          testCase.id,
+                          "testerName",
+                          event.target.value,
+                        )
+                      }
+                      className="h-9 w-full"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      value={testCase.executionDate}
+                      onChange={(event) =>
+                        updateTestCase(
+                          testCase.id,
+                          "executionDate",
+                          event.target.value,
+                        )
+                      }
+                      className="h-9 w-full"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      value={testCase.link}
+                      onChange={(event) =>
+                        updateTestCase(testCase.id, "link", event.target.value)
+                      }
+                      className="h-9 w-full"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      value={testCase.developerStatus}
+                      onChange={(event) =>
+                        updateTestCase(
+                          testCase.id,
+                          "developerStatus",
+                          event.target.value,
+                        )
+                      }
+                      className="h-9 w-full"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      value={testCase.developerName}
+                      onChange={(event) =>
+                        updateTestCase(
+                          testCase.id,
+                          "developerName",
+                          event.target.value,
+                        )
+                      }
+                      className="h-9 w-full"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      value={testCase.fixedDate}
+                      onChange={(event) =>
+                        updateTestCase(
+                          testCase.id,
+                          "fixedDate",
+                          event.target.value,
+                        )
+                      }
+                      className="h-9 w-full"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      value={testCase.qaStatus}
+                      onChange={(event) =>
+                        updateTestCase(
+                          testCase.id,
+                          "qaStatus",
+                          event.target.value,
+                        )
+                      }
+                      className="h-9 w-full"
+                    />
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -141,7 +379,5 @@ export default function TestingPage() {
         </Table>
       </div>
     </div>
-
-    
   );
 }
