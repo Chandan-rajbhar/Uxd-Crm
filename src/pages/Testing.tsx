@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Plus, Download } from "lucide-react";
+import { ArrowLeft, Plus, Download, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -100,6 +100,12 @@ export default function TestingPage() {
     setTestCases((current) => current.filter((testCase) => testCase.id !== id));
   };
 
+  const addLink = (id: string) => {
+    if (typeof window === "undefined") return;
+    const url = window.prompt("Enter link (include https://)")?.trim();
+    if (url) updateTestCase(id, "link", url);
+  };
+
   const exportTestCases = () => {
     if (testCases.length === 0) return;
 
@@ -190,7 +196,7 @@ export default function TestingPage() {
               <TableHead>Developer Name</TableHead>
               <TableHead>Fixed Date</TableHead>
               <TableHead>QA Status</TableHead>
-              {/* <TableHead>Actions</TableHead> */}
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -272,18 +278,8 @@ export default function TestingPage() {
                       className="h-9 w-full"
                     />
                   </TableCell>
-                  <TableCell>
-                    <Input
-                      value={testCase.status}
-                      onChange={(event) =>
-                        updateTestCase(
-                          testCase.id,
-                          "status",
-                          event.target.value,
-                        )
-                      }
-                      className="h-9 w-full"
-                    />
+                  <TableCell className="py-2 px-3 text-sm text-slate-700">
+                    {testCase.status}
                   </TableCell>
                   <TableCell>
                     <Input
@@ -311,14 +307,25 @@ export default function TestingPage() {
                       className="h-9 w-full"
                     />
                   </TableCell>
-                  <TableCell>
-                    <Input
-                      value={testCase.link}
-                      onChange={(event) =>
-                        updateTestCase(testCase.id, "link", event.target.value)
-                      }
-                      className="h-9 w-full"
-                    />
+                  <TableCell className="py-2 px-3">
+                    {testCase.link ? (
+                      testCase.link.startsWith("http") ? (
+                        <a
+                          href={testCase.link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sky-600 underline"
+                        >
+                          Open
+                        </a>
+                      ) : (
+                        <span className="text-sm">{testCase.link}</span>
+                      )
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => addLink(testCase.id)} className="h-8">
+                        Add Link
+                      </Button>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Input
@@ -359,18 +366,18 @@ export default function TestingPage() {
                       className="h-9 w-full"
                     />
                   </TableCell>
+                  <TableCell className="py-2 px-3 text-sm text-slate-700">
+                    {testCase.qaStatus}
+                  </TableCell>
                   <TableCell>
-                    <Input
-                      value={testCase.qaStatus}
-                      onChange={(event) =>
-                        updateTestCase(
-                          testCase.id,
-                          "qaStatus",
-                          event.target.value,
-                        )
-                      }
-                      className="h-9 w-full"
-                    />
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="h-9 px-2 ml-4"
+                      onClick={() => removeTestCase(testCase.id)}
+                    >
+                      <Trash2 className="h-4 w-4"/>
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))
