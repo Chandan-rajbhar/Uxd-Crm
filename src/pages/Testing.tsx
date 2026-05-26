@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Plus, Download, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,127 @@ export default function TestingPage() {
   const [isHydrated, setIsHydrated] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [testCaseToDelete, setTestCaseToDelete] = useState<string | null>(null);
+
+  const columnHeaders = useMemo(
+    () =>
+      Array.from({ length: 26 }, (_, index) => String.fromCharCode(65 + index)),
+    [],
+  );
+
+  // column -> TestCase field mapping (editable)
+  const defaultMap = [
+    "id",
+    "title",
+    "preconditions",
+    "steps",
+    "expectedResult",
+    "actualResult",
+    "status",
+    "testerName",
+    "executionDate",
+    "link",
+    "developerStatus",
+    "developerName",
+    "fixedDate",
+    "qaStatus",
+  ].concat(Array(26 - 14).fill("")) as (keyof TestCase | "")[];
+
+  const [colFieldMapping, setColFieldMapping] =
+    useState<(keyof TestCase | "")[]>(defaultMap);
+
+  const [sheetData, setSheetData] = useState<string[][]>(() =>
+    Array.from({ length: 1000 }, () => Array(26).fill("")),
+  );
+
+  const [editingCell, setEditingCell] = useState<{
+    r: number;
+    c: number;
+  } | null>(null);
+  const [editValue, setEditValue] = useState("");
+
+  const [colWidths, setColWidths] = useState<number[]>(
+    Array.from({ length: 26 }, () => 120),
+  );
+
+  const resizeRef = useRef<{
+    startX: number;
+    col: number;
+    startWidth: number;
+  } | null>(null);
+
+  // Sync sheetData from testCases whenever testCases change
+  useEffect(() => {
+    setSheetData((prev) => {
+      const newData = Array.from({ length: 1000 }, () => Array(26).fill(""));
+      testCases.forEach((tc, i) => {
+        const row = Array(26).fill("");
+        row[0] = tc.id || "";
+        row[1] = tc.title || "";
+        row[2] = tc.preconditions || "";
+        row[3] = tc.steps || "";
+        row[4] = tc.expectedResult || "";
+        row[5] = tc.actualResult || "";
+        row[6] = tc.status || "";
+        row[7] = tc.testerName || "";
+        row[8] = tc.executionDate || "";
+        row[9] = tc.link || "";
+        row[10] = tc.developerStatus || "";
+        row[11] = tc.developerName || "";
+        row[12] = tc.fixedDate || "";
+        row[13] = tc.qaStatus || "";
+        newData[i] = row;
+      });
+      // preserve any previously edited cells beyond current testCases by copying from prev
+      for (let i = testCases.length; i < 1000; i++) {
+        if (prev[i]) newData[i] = prev[i];
+      }
+      return newData;
+    });
+  }, [testCases]);
+
+  const commitEdit = (r: number, c: number, value: string) => {
+    setSheetData((prev) => {
+      const next = prev.map((row) => row.slice());
+      if (next[r]) next[r][c] = value;
+      return next;
+    });
+    setEditingCell(null);
+    setEditValue("");
+
+    // propagate to testCases if editing an existing test case row and column mapped
+    if (r < testCases.length) {
+      const field = colFieldMapping[c];
+      if (field) {
+        updateTestCase(testCases[r].id, field, value);
+      }
+    }
+  };
+
+  const startResize = (col: number, e: any) => {
+    resizeRef.current = { startX: e.clientX, col, startWidth: colWidths[col] };
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!resizeRef.current) return;
+      const delta = ev.clientX - resizeRef.current.startX;
+      setColWidths((prev) => {
+        const next = prev.slice();
+        next[resizeRef.current!.col] = Math.max(
+          40,
+          resizeRef.current!.startWidth + delta,
+        );
+        return next;
+      });
+    };
+
+    const onMouseUp = () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+      resizeRef.current = null;
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  };
 
   const storageKey = `testing-test-cases-${id || "global"}`;
 
@@ -87,6 +208,7 @@ export default function TestingPage() {
       qaStatus: "Pending",
     };
 
+    // Add to testCases; useEffect will sync to sheetData automatically
     setTestCases((current) => [newCase, ...current]);
   };
 
@@ -185,293 +307,151 @@ export default function TestingPage() {
           >
             <Download className="h-4 w-4" /> Export Excel
           </Button>
+          {/* Excel sheet always visible and synced to test cases */}
         </div>
       </div>
-      <div className="overflow-auto rounded-md border border-slate-200 bg-white shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Test Case ID</TableHead>
-              <TableHead>Test Case Title</TableHead>
-              <TableHead>Preconditions</TableHead>
-              <TableHead>Steps</TableHead>
-              <TableHead>Expected Result</TableHead>
-              <TableHead>Actual Result</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Tester Name</TableHead>
-              <TableHead>Execution Date</TableHead>
-              <TableHead>Link</TableHead>
-              <TableHead>Developer Status</TableHead>
-              <TableHead>Developer Name</TableHead>
-              <TableHead>Fixed Date</TableHead>
-              <TableHead>QA Status</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {testCases.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={15}
-                  className="p-6 text-center text-sm text-slate-500"
-                >
-                  No test cases yet. Click Add Test Case to insert a dummy row.
-                </TableCell>
-              </TableRow>
-            ) : (
-              testCases.map((testCase) => (
-                <TableRow key={testCase.id}>
-                  <TableCell>
-                    <Input
-                      value={testCase.id}
-                      onChange={(event) =>
-                        updateTestCase(testCase.id, "id", event.target.value)
-                      }
-                      className="h-9 w-20"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      value={testCase.title}
-                      onChange={(event) =>
-                        updateTestCase(testCase.id, "title", event.target.value)
-                      }
-                      className="h-9 w-full px-3"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      value={testCase.preconditions}
-                      onChange={(event) =>
-                        updateTestCase(
-                          testCase.id,
-                          "preconditions",
-                          event.target.value,
-                        )
-                      }
-                      className="h-9 w-full"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      value={testCase.steps}
-                      onChange={(event) =>
-                        updateTestCase(testCase.id, "steps", event.target.value)
-                      }
-                      className="h-9 w-full"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      value={testCase.expectedResult}
-                      onChange={(event) =>
-                        updateTestCase(
-                          testCase.id,
-                          "expectedResult",
-                          event.target.value,
-                        )
-                      }
-                      className="h-9 w-full"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      value={testCase.actualResult}
-                      onChange={(event) =>
-                        updateTestCase(
-                          testCase.id,
-                          "actualResult",
-                          event.target.value,
-                        )
-                      }
-                      className="h-9 w-full"
-                    />
-                  </TableCell>
-                  <TableCell className="py-2 px-3 text-sm text-slate-700">
-                    <select
-                      value={testCase.status}
-                      onChange={(event) =>
-                        updateTestCase(
-                          testCase.id,
-                          "status",
-                          event.target.value,
-                        )
-                      }
-                      className="h-9 w-22 text-sm bg-white"
-                    >
-                      <option value="Pending">Fixed</option>
-                      <option value="Active">Not Fixed</option>
-                      <option value="Verified">Features</option>
-                      <option value="Completed">Removed</option>
-                      <option value="In Progress">Pending</option>
-                    </select>
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      value={testCase.testerName}
-                      onChange={(event) =>
-                        updateTestCase(
-                          testCase.id,
-                          "testerName",
-                          event.target.value,
-                        )
-                      }
-                      className="h-9 w-full"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      value={testCase.executionDate}
-                      onChange={(event) =>
-                        updateTestCase(
-                          testCase.id,
-                          "executionDate",
-                          event.target.value,
-                        )
-                      }
-                      className="h-9 w-full"
-                    />
-                  </TableCell>
-                  <TableCell className="py-2 px-3">
-                    {testCase.link ? (
-                      testCase.link.startsWith("http") ? (
-                        <a
-                          href={testCase.link}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sky-600 underline"
-                        >
-                          Open
-                        </a>
-                      ) : (
-                        <span className="text-sm cursor-pointer">
-                          {testCase.link}
-                        </span>
-                      )
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => addLink(testCase.id)}
-                        className="h-8"
-                      >
-                        Add Link
-                      </Button>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      value={testCase.developerStatus}
-                      onChange={(event) =>
-                        updateTestCase(
-                          testCase.id,
-                          "developerStatus",
-                          event.target.value,
-                        )
-                      }
-                      className="h-9 w-full"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      value={testCase.developerName}
-                      onChange={(event) =>
-                        updateTestCase(
-                          testCase.id,
-                          "developerName",
-                          event.target.value,
-                        )
-                      }
-                      className="h-9 w-full"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      value={testCase.fixedDate}
-                      onChange={(event) =>
-                        updateTestCase(
-                          testCase.id,
-                          "fixedDate",
-                          event.target.value,
-                        )
-                      }
-                      className="h-9 w-full"
-                    />
-                  </TableCell>
-                  <TableCell className="py-2 px-3 text-sm text-slate-700">
-                    <select
-                      value={testCase.qaStatus}
-                      onChange={(event) => {
-                        updateTestCase(
-                          testCase.id,
-                          "qaStatus",
-                          event.target.value,
-                        );
-                      }}
-                      className="h-9 w-25 rounded text-sm bg-white "
-                    >
-                      <option value="Pending">Retesting</option>
-                      <option value="In Progress">Not Fixed</option>
-                      <option value="Passed">Re-open</option>
-                      <option value="Failed">Closed</option>
-                      <option value="Blocked">Blocked</option>
-                      <option value="QA Completed">Removed</option>
-                      <option value="Approved">Work in Progress</option>
-                      <option value="Approved">Pending</option>
-                    </select>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="h-9 px-2 ml-4"
-                      onClick={() => handleDeleteClick(testCase.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <div className="rounded-md border border-slate-200 bg-white shadow-sm">
+        {/*  */}
 
-      {/* Delete Confirmation Modal */}
-      {isDeleteOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
-            <h2 className="text-lg font-bold text-slate-900 mb-3">
-              Are you absolutely sure?
-            </h2>
-            <p className="text-sm text-slate-600 mb-6">
-              This action cannot be undone. This will permanently delete the
-              test case and remove it from the timeline.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsDeleteOpen(false);
-                  setTestCaseToDelete(null);
-                }}
-                className="px-4 py-2"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() =>
-                  testCaseToDelete && removeTestCase(testCaseToDelete)
-                }
-                className="px-4 py-2"
-              >
-                Delete Test Case
-              </Button>
+        <div className="rounded-md border border-slate-200 bg-white shadow-sm">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Test Case ID</TableHead>
+                <TableHead>Test Case Title</TableHead>
+                <TableHead>Preconditions</TableHead>
+                <TableHead>Steps</TableHead>
+                <TableHead>Expected Result</TableHead>
+                <TableHead>Actual Result</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Tester Name</TableHead>
+                <TableHead>Execution Date</TableHead>
+                <TableHead>Link</TableHead>
+                <TableHead>Developer Status</TableHead>
+                <TableHead>Developer Name</TableHead>
+                <TableHead>Fixed Date</TableHead>
+                <TableHead>QA Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+          </Table>
+        </div>
+        {/* Delete Confirmation Modal */}
+        {isDeleteOpen && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
+              <h2 className="text-lg font-bold text-slate-900 mb-3">
+                Are you absolutely sure?
+              </h2>
+              <p className="text-sm text-slate-600 mb-6">
+                This action cannot be undone. This will permanently delete the
+                test case and remove it from the timeline.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsDeleteOpen(false);
+                    setTestCaseToDelete(null);
+                  }}
+                  className="px-4 py-2"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() =>
+                    testCaseToDelete && removeTestCase(testCaseToDelete)
+                  }
+                  className="px-4 py-2"
+                >
+                  Delete Test Case
+                </Button>
+              </div>
             </div>
           </div>
+        )}
+        <div className="overflow-auto max-h-[65vh]">
+          <table className="min-w-full border-collapse text-sm">
+            <thead className="bg-slate-100 text-slate-600">
+              <tr>
+                <th className="sticky left-0 z-20 bg-slate-100 border border-slate-200 px-2 py-1 text-left text-xs uppercase tracking-[0.24em]">
+                  #
+                </th>
+                {columnHeaders.map((column, i) => (
+                  <th
+                    key={column}
+                    style={{ width: colWidths[i] }}
+                    className="border border-slate-200 px-2 py-1 text-left text-xs uppercase tracking-[0.24em] align-top"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span>{column}</span>
+                      <div
+                        onMouseDown={(e) => startResize(i, e)}
+                        className="h-5 w-2 cursor-col-resize"
+                        title="Drag to resize"
+                      />
+                    </div>
+                    {/* mapping dropdown removed per request */}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sheetData.map((row, rowIndex) => (
+                <tr
+                  key={rowIndex}
+                  className={rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50"}
+                >
+                  <td className="sticky left-0 z-10 bg-white border border-slate-200 px-2 py-1 text-xs font-semibold">
+                    {rowIndex + 1}
+                  </td>
+                  {row.map((cell, colIndex) => {
+                    const isEditing = !!(
+                      editingCell &&
+                      editingCell.r === rowIndex &&
+                      editingCell.c === colIndex
+                    );
+                    return (
+                      <td
+                        key={`${colIndex}-${rowIndex}`}
+                        style={{ width: colWidths[colIndex] }}
+                        className="border border-slate-200 px-2 py-1 min-w-[6rem] align-top"
+                        onDoubleClick={() => {
+                          setEditingCell({ r: rowIndex, c: colIndex });
+                          setEditValue(cell || "");
+                        }}
+                      >
+                        {isEditing ? (
+                          <input
+                            autoFocus
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onBlur={() =>
+                              commitEdit(rowIndex, colIndex, editValue)
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter")
+                                commitEdit(rowIndex, colIndex, editValue);
+                              if (e.key === "Escape") {
+                                setEditingCell(null);
+                                setEditValue("");
+                              }
+                            }}
+                            className="w-full h-8 p-1 border rounded text-sm"
+                          />
+                        ) : (
+                          <div className="text-xs min-h-[20px]">{cell}</div>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
     </div>
   );
 }
