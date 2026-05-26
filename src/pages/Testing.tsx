@@ -1,19 +1,60 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-import { Table, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableHead, TableHeader, TableRow, TableBody, TableCell } from "@/components/ui/table";
 import { useProjects } from "src/hooks/useProjects";
+
+type TestCase = {
+  id: string;
+  title: string;
+  preconditions: string;
+  steps: string;
+  expectedResult: string;
+  actualResult: string;
+  status: string;
+  testerName: string;
+  executionDate: string;
+  link: string;
+  developerStatus: string;
+  developerName: string;
+  fixedDate: string;
+  qaStatus: string;
+};
 
 export default function TestingPage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { projects } = useProjects();
+  const [testCases, setTestCases] = useState<TestCase[]>([]);
+
   const project = useMemo(
     () => projects.find((project) => project.id === id),
     [projects, id],
   );
+
+  const addDummyTestCase = () => {
+    const nextIndex = testCases.length + 1;
+    const newCase: TestCase = {
+      id: `TC00${nextIndex}`,
+      title: "UI validation",
+      preconditions: "User is logged in",
+      steps: "Open testing page and review table",
+      expectedResult: "Table shows all fields correctly",
+      actualResult: "Pending verification",
+      status: "Pending",
+      testerName: "QA Team",
+      executionDate: new Date().toLocaleDateString(),
+      link: "View",
+      developerStatus: "Not started",
+      developerName: "Dev Team",
+      fixedDate: "-",
+      qaStatus: "Pending",
+    };
+
+    setTestCases((current) => [...current, newCase]);
+  };
 
   return (
     <div className="space-y-1">
@@ -39,7 +80,12 @@ export default function TestingPage() {
           >
             <ArrowLeft className="h-4 w-4" /> Back
           </Button>
-          <Button variant="secondary" size="sm" className="h-10">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-10"
+            onClick={addDummyTestCase}
+          >
             <Plus className="h-4 w-4" /> Add Test Case
           </Button>
         </div>
@@ -64,6 +110,34 @@ export default function TestingPage() {
               <TableHead>QA Status</TableHead>
             </TableRow>
           </TableHeader>
+          <TableBody>
+            {testCases.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={14} className="p-6 text-center text-sm text-slate-500">
+                  No test cases yet. Click Add Test Case to insert a dummy row.
+                </TableCell>
+              </TableRow>
+            ) : (
+              testCases.map((testCase) => (
+                <TableRow key={testCase.id}>
+                  <TableCell>{testCase.id}</TableCell>
+                  <TableCell>{testCase.title}</TableCell>
+                  <TableCell>{testCase.preconditions}</TableCell>
+                  <TableCell>{testCase.steps}</TableCell>
+                  <TableCell>{testCase.expectedResult}</TableCell>
+                  <TableCell>{testCase.actualResult}</TableCell>
+                  <TableCell>{testCase.status}</TableCell>
+                  <TableCell>{testCase.testerName}</TableCell>
+                  <TableCell>{testCase.executionDate}</TableCell>
+                  <TableCell>{testCase.link}</TableCell>
+                  <TableCell>{testCase.developerStatus}</TableCell>
+                  <TableCell>{testCase.developerName}</TableCell>
+                  <TableCell>{testCase.fixedDate}</TableCell>
+                  <TableCell>{testCase.qaStatus}</TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
         </Table>
       </div>
     </div>
