@@ -364,20 +364,21 @@ export default function TestingPage() {
           <table className="min-w-full border-collapse text-sm">
             <thead className="bg-slate-100 text-slate-600">
               <tr>
-                <th className="sticky left-0 top-0 z-30 bg-slate-100 border border-slate-200 px-2 py-2 text-left text-xs uppercase tracking-[0.24em]">
+                <th className="left-0 top-0 z-30 bg-slate-100 border border-slate-200 px-2 py-2 text-left text-xs uppercase tracking-[0.24em]">
                   #
                 </th>
+                
                 {columnLabels.map((label, i) => (
                   <th
                     key={i}
                     style={{ width: colWidths[i] }}
-                    className="border border-slate-200 bg-slate-100 px-2 py-2 text-left align-top"
+                    className="border border-b-slate-950 bg-slate-100 text-left align-top"
                   >
                     <div className="flex flex-col gap-1">
-                      <span className="text-[10px] uppercase tracking-[0.24em] text-slate-500">
+                      <span className="text-[12px] text-center uppercase  tracking-[0.24em] text-slate-500">
                         {columnHeaders[i]}
                       </span>
-                      <span className="text-[11px] font-semibold text-slate-700">
+                      <span className="text-[12px] font-semibold text-slate-700">
                         {label || "\u00A0"}
                       </span>
                     </div>
@@ -396,7 +397,7 @@ export default function TestingPage() {
                   key={rowIndex}
                   className={rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50"}
                 >
-                  <td className="sticky left-0 z-10 bg-white border border-slate-200 px-2 py-1 text-xs font-semibold">
+                  <td className="left-0 z-10 bg-white border border-slate-200 px-2 py-1 text-xs font-semibold">
                     {rowIndex + 1}
                   </td>
                   {row.map((cell, colIndex) => {
@@ -410,7 +411,7 @@ export default function TestingPage() {
                         key={`${colIndex}-${rowIndex}`}
                         style={{ width: colWidths[colIndex] }}
                         className="border border-slate-200 px-2 py-1 min-w-[6rem] align-top"
-                        onDoubleClick={() => {
+                        onClick={() => {
                           setEditingCell({ r: rowIndex, c: colIndex });
                           setEditValue(cell || "");
                         }}
@@ -431,10 +432,10 @@ export default function TestingPage() {
                                 setEditValue("");
                               }
                             }}
-                            className="w-full h-8 border rounded text-sm"
+                            className="w-full text-sm"
                           />
                         ) : (
-                          <div className="text-xs min-h-[20px]">{cell}</div>
+                          <div className="text-xs min-h-[10px] ">{cell}</div>
                         )}
                       </td>
                     );
