@@ -89,9 +89,30 @@ export default function TestingPage() {
   } | null>(null);
   const [editValue, setEditValue] = useState("");
 
-  const [colWidths, setColWidths] = useState<number[]>(
-    Array.from({ length: 26 }, () => 120),
-  );
+const [colWidths, setColWidths] = useState<number[]>(
+  Array.from({ length: 26 }, () => 120),
+);
+
+// Function to measure text width
+const measureTextWidth = (text: string, fontSize: string = "12px", fontWeight: string = "400"): number => {
+  if (!text) return 0;
+  
+  // Create a temporary span element to measure text
+  const span = document.createElement('span');
+  span.style.position = 'absolute';
+  span.style.visibility = 'hidden';
+  span.style.whiteSpace = 'nowrap';
+  span.style.fontSize = fontSize;
+  span.style.fontWeight = fontWeight;
+  span.textContent = text;
+  
+  document.body.appendChild(span);
+  const width = span.getBoundingClientRect().width;
+  document.body.removeChild(span);
+  
+  // Add some padding
+  return width + 20; // 20px padding (10px each side)
+};
 
   const resizeRef = useRef<{
     startX: number;
@@ -362,35 +383,35 @@ export default function TestingPage() {
         )}
         <div className="overflow-auto max-h-[65vh]">
           <table className="min-w-full border-collapse text-sm">
-            <thead className="bg-slate-100 text-slate-600">
-              <tr>
-                <th className="left-0 top-0 z-30 bg-slate-100 border border-slate-200 px-2 py-2 text-left text-xs uppercase tracking-[0.24em]">
-                  #
-                </th>
-                
-                {columnLabels.map((label, i) => (
-                  <th
-                    key={i}
-                    style={{ width: colWidths[i] }}
-                    className="border border-b-slate-950 bg-slate-100 text-left align-top"
-                  >
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[12px] text-center uppercase  tracking-[0.24em] text-slate-500">
-                        {columnHeaders[i]}
-                      </span>
-                      <span className="text-[12px] font-semibold text-slate-700">
-                        {label || "\u00A0"}
-                      </span>
-                    </div>
-                    <div
-                      onMouseDown={(e) => startResize(i, e)}
-                      className="h-5 w-2 cursor-col-resize mt-1"
-                      title="Drag to resize"
-                    />
-                  </th>
-                ))}
-              </tr>
-            </thead>
+           <thead className="bg-slate-100 text-slate-600">
+               <tr>
+                 <th className="left-0 top-0 z-30 bg-slate-100 border border-slate-200 px-2 py-2 text-left text-xs uppercase tracking-[0.24em]">
+                   #
+                 </th>
+                 
+                 {columnLabels.map((label, i) => (
+                   <th
+                     key={i}
+                     style={{ width: colWidths[i], minWidth: colWidths[i] }}
+                     className="border border-b-slate-950 bg-slate-100 text-left align-top whitespace-nowrap overflow-hidden text-ellipsis"
+                   >
+                     <div className="flex flex-col gap-1">
+                       <span className="text-[12px] text-center uppercase  tracking-[0.24em] text-slate-500">
+                         {columnHeaders[i]}
+                       </span>
+                       <span className="text-[12px] font-semibold text-slate-700">
+                         {label || "\u00A0"}
+                       </span>
+                     </div>
+                     <div
+                       onMouseDown={(e) => startResize(i, e)}
+                       className="h-5 w-2 cursor-col-resize mt-1"
+                       title="Drag to resize"
+                     />
+                   </th>
+                 ))}
+               </tr>
+             </thead>
             <tbody>
               {sheetData.map((row, rowIndex) => (
                 <tr
