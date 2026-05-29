@@ -89,30 +89,30 @@ export default function TestingPage() {
   } | null>(null);
   const [editValue, setEditValue] = useState("");
 
-const [colWidths, setColWidths] = useState<number[]>(
-  Array.from({ length: 26 }, () => 120),
-);
+  const [colWidths, setColWidths] = useState<number[]>(
+    Array.from({ length: 26 }, () => 120),
+  );
 
-// Function to measure text width
-const measureTextWidth = (text: string, fontSize: string = "12px", fontWeight: string = "400"): number => {
-  if (!text) return 0;
-  
-  // Create a temporary span element to measure text
-  const span = document.createElement('span');
-  span.style.position = 'absolute';
-  span.style.visibility = 'hidden';
-  span.style.whiteSpace = 'nowrap';
-  span.style.fontSize = fontSize;
-  span.style.fontWeight = fontWeight;
-  span.textContent = text;
-  
-  document.body.appendChild(span);
-  const width = span.getBoundingClientRect().width;
-  document.body.removeChild(span);
-  
-  // Add some padding
-  return width + 20; // 20px padding (10px each side)
-};
+  // Function to measure text width
+  const measureTextWidth = (text: string, fontSize: string = "12px", fontWeight: string = "400"): number => {
+    if (!text) return 0;
+
+    // Create a temporary span element to measure text
+    const span = document.createElement('span');
+    span.style.position = 'absolute';
+    span.style.visibility = 'hidden';
+    span.style.whiteSpace = 'nowrap';
+    span.style.fontSize = fontSize;
+    span.style.fontWeight = fontWeight;
+    span.textContent = text;
+
+    document.body.appendChild(span);
+    const width = span.getBoundingClientRect().width;
+    document.body.removeChild(span);
+
+    // Add some padding
+    return width + 20; // 20px padding (10px each side)
+  };
 
   const resizeRef = useRef<{
     startX: number;
@@ -301,8 +301,8 @@ const measureTextWidth = (text: string, fontSize: string = "12px", fontWeight: s
   };
 
   return (
-    <div className="space-y-1">
-      <div className="flex flex-col gap-6 border border-slate-200 p-2 shadow-sm transition hover:shadow-md md:flex-row md:items-center md:justify-between">
+    <div className="flex flex-col h-[calc(100vh-11rem)] md:h-[calc(100vh-5.5rem)] w-full max-w-full min-w-0 overflow-hidden p-4 space-y-4 bg-slate-50/30">
+      <div className="flex flex-col gap-4 border border-slate-200 p-4 shadow-sm transition hover:shadow-md md:flex-row md:items-center md:justify-between shrink-0 rounded-lg bg-white">
         <div>
           <p className="text-sm uppercase tracking-[0.24em] text-slate-500">
             Testing Workspace
@@ -343,7 +343,7 @@ const measureTextWidth = (text: string, fontSize: string = "12px", fontWeight: s
           {/* Excel sheet always visible and synced to test cases */}
         </div>
       </div>
-      <div className="rounded-md border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div className="flex-1 min-h-0 w-full max-w-full min-w-0 rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
         {/*  */}
 
         {/* Delete Confirmation Modal */}
@@ -381,44 +381,44 @@ const measureTextWidth = (text: string, fontSize: string = "12px", fontWeight: s
             </div>
           </div>
         )}
-        <div className="overflow-auto max-h-[65vh]">
+        <div className="flex-1 overflow-auto">
           <table className="min-w-full border-collapse text-sm">
-           <thead className="bg-slate-100 text-slate-600">
-               <tr>
-                 <th className="left-0 top-0 z-30 bg-slate-100 border border-slate-200 px-2 py-2 text-left text-xs uppercase tracking-[0.24em]">
-                   #
-                 </th>
-                 
-                 {columnLabels.map((label, i) => (
-                   <th
-                     key={i}
-                     style={{ width: colWidths[i], minWidth: colWidths[i] }}
-                     className="border border-b-slate-950 bg-slate-100 text-left align-top whitespace-nowrap overflow-hidden text-ellipsis"
-                   >
-                     <div className="flex flex-col gap-1">
-                       <span className="text-[12px] text-center uppercase  tracking-[0.24em] text-slate-500">
-                         {columnHeaders[i]}
-                       </span>
-                       <span className="text-[12px] font-semibold text-slate-700">
-                         {label || "\u00A0"}
-                       </span>
-                     </div>
-                     <div
-                       onMouseDown={(e) => startResize(i, e)}
-                       className="h-5 w-2 cursor-col-resize mt-1"
-                       title="Drag to resize"
-                     />
-                   </th>
-                 ))}
-               </tr>
-             </thead>
+            <thead className="bg-slate-100 text-slate-600">
+              <tr>
+                <th className="sticky left-0 top-0 z-30 bg-slate-100 border border-slate-200 px-2 py-2 text-left text-xs uppercase tracking-[0.24em]">
+                  #
+                </th>
+
+                {columnLabels.map((label, i) => (
+                  <th
+                    key={i}
+                    style={{ width: colWidths[i], minWidth: colWidths[i] }}
+                    className="sticky  top-0 z-20 border border-b-slate-950 bg-slate-100 text-left align-top whitespace-nowrap overflow-hidden text-ellipsis"
+                  >
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[12px] text-center uppercase  tracking-[0.24em] text-slate-500">
+                        {columnHeaders[i]}
+                      </span>
+                      <span className="text-[12px] font-semibold text-slate-700 text-center">
+                        {label || "\u00A0"}
+                      </span>
+                    </div>
+                    <div
+                      onMouseDown={(e) => startResize(i, e)}
+                      className="h-5 w-2 cursor-col-resize mt-1"
+                      title="Drag to resize"
+                    />
+                  </th>
+                ))}
+              </tr>
+            </thead>
             <tbody>
               {sheetData.map((row, rowIndex) => (
                 <tr
                   key={rowIndex}
                   className={rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50"}
                 >
-                  <td className="left-0 z-10 bg-white border border-slate-200 px-2 py-1 text-xs font-semibold">
+                  <td className={`sticky left-0 z-10 border border-slate-200 px-2 py-1 text-xs font-semibold ${rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50"}`}>
                     {rowIndex + 1}
                   </td>
                   {row.map((cell, colIndex) => {
@@ -438,23 +438,23 @@ const measureTextWidth = (text: string, fontSize: string = "12px", fontWeight: s
                         }}
                       >
                         {isEditing ? (
-                          <input
-                            autoFocus
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onBlur={() =>
-                              commitEdit(rowIndex, colIndex, editValue)
-                            }
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter")
-                                commitEdit(rowIndex, colIndex, editValue);
-                              if (e.key === "Escape") {
-                                setEditingCell(null);
-                                setEditValue("");
-                              }
-                            }}
-                            className="w-full text-sm"
-                          />
+                           <input
+                             type="text"
+                             autoFocus
+                             value={editValue}
+                             onChange={(e) => setEditValue(e.target.value)}
+                             onBlur={() => commitEdit(rowIndex, colIndex, editValue)}
+                             onKeyDown={(e) => {
+                               if (e.key === "Enter")
+                                 commitEdit(rowIndex, colIndex, editValue);
+                               if (e.key === "Escape") {
+                                 setEditingCell(null);
+                                 setEditValue("");
+                               }
+                             }}
+                             size={Math.max(editValue.length, 5)}
+                             className="w-auto text-sm"
+                           />
                         ) : (
                           <div className="text-xs min-h-[10px] ">{cell}</div>
                         )}
